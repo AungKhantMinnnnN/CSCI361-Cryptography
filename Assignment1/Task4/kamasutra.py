@@ -25,37 +25,36 @@ def createCipherMapping(key):
     cipherMap = {}
     keyLength = len(key)
     
-    # Initialize identity mapping
-    for i in range(26):
-        char = chr(ord('a') + i)
-        cipherMap[char] = char
-    
-    # Create pairing based on key
     for i in range(keyLength // 2):
         first = key[i].lower()
         second = key[keyLength - 1 - i].lower()
-
+        
         if 'a' <= first <= 'z' and 'a' <= second <= 'z':
             cipherMap[first] = second
             cipherMap[second] = first
+    
+    # Handle middle character for odd-length keys (maps to itself)
+    if keyLength % 2 == 1:
+        middle_char = key[keyLength // 2].lower()
+        if 'a' <= middle_char <= 'z':
+            cipherMap[middle_char] = middle_char
 
     return cipherMap
 
-def transformText(inputFile, outputFile, key, encryptMode = True):
-    # Encrypt or decrypt text using the flipped kamasutra cipher
+def encryption(inputFile, outputFile, key):
     try:
         with open(inputFile, 'r') as in_file:
             text = in_file.read()
     except IOError as e:
         print(f"Error: Cannot open input file {inputFile}. {e}")
         sys.exit(1)
-
+    
     try:
         with open(outputFile, 'w') as out_file:
             cipherMapping = createCipherMapping(key)
 
             for char in text:
-                if char == 'f' or char == 'F':
+                if char == 'f' or char == 'F' or char == 'u' or char == 'U':
                     out_file.write(char)
                 elif char.islower():
                     out_file.write(cipherMapping.get(char, char))
@@ -65,19 +64,45 @@ def transformText(inputFile, outputFile, key, encryptMode = True):
                     out_file.write(mappedChar.upper())
                 else:
                     out_file.write(char)
-        operation = "Encryption" if encryptMode else "Decryption"
-        print(f"{operation} complete. {inputFile} -> {outputFile}")
+            print(f"Encryption complete: {inputFile} -> {outputFile}")
     except IOError as e:
-        print(f"Error: An error has occurred while creating output file {outputFile}. {e}")
+        print(f"Error: Cannot create output file {outputFile} - {e}", file=sys.stderr)
+        sys.exit(1)
+
+def decryption(inputFile, outputFile, key):
+    try:
+        with open(inputFile, 'r') as in_file:
+            text = in_file.read()
+    except IOError as e:
+        print(f"Error: Cannot open input file {inputFile}. {e}")
+        sys.exit(1)
+    
+    try:
+        with open(outputFile, 'w') as out_file:
+            cipherMapping = createCipherMapping(key)
+
+            for char in text:
+                if char == 'f' or char == 'F' or char == 'u' or char == 'U':
+                    out_file.write(char)
+                elif char.islower():
+                    out_file.write(cipherMapping.get(char, char))
+                elif char.isupper():
+                    lowerChar = char.lower()
+                    mappedChar = cipherMapping.get(lowerChar, lowerChar)
+                    out_file.write(mappedChar.upper())
+                else:
+                    out_file.write(char)
+            print(f"Decryption complete: {inputFile} -> {outputFile}")
+    except IOError as e:
+        print(f"Error: Cannot create output file {outputFile} - {e}", file=sys.stderr)
         sys.exit(1)
 
 def encryptText(keyfile, plainTextFile, cipherTextFile):
     key = readKeyfile(keyfile)
-    transformText(plainTextFile, cipherTextFile, key, encryptMode=True)
-
+    encryption(plainTextFile, cipherTextFile, key)
 def decryptText(keyfile, cipherTextFile, plainTextFile):
     key = readKeyfile(keyfile)
-    transformText(cipherTextFile, plainTextFile, key, encryptMode=False)
+    decryption(cipherTextFile, plainTextFile, key)
 
 def main():
     if len(sys.argv) < 3:

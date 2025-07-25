@@ -17,7 +17,7 @@ def TEA_encrypt(plaintext, key):
 
     return (v1 << 5) | v0
 
-def CFB1BitEncryptionAndDecryption(message, key, iv):
+def CFB1BitEncryption(message, key, iv):
     result = []
     shiftRegister = iv & 0x3FF
 
@@ -45,6 +45,36 @@ def CFB1BitEncryptionAndDecryption(message, key, iv):
 
         result.append(chr(encryptedChar))
     
+    return ''.join(result)
+
+def CFB1BitDecryption(ciphertext, key, iv):
+    result = []
+    shiftRegister = iv & 0x3FF
+
+    for char in ciphertext:
+        decryptedChar = 0
+        charValue = ord(char)
+
+        # Process each bit
+        for bitPosition in range(8):
+            # Encrypt shift register
+            encryptedShiftRegister = TEA_encrypt(shiftRegister, key)
+
+            # Get the leftmost bit of encrypted shift register
+            keyBit = (encryptedShiftRegister >> 9) & 1 # Assuming 10 bit output
+
+            # Extract the ciphertext bit
+            cipherBit = (charValue >> bitPosition) & 1
+
+            # XOR with key bit to get the plaintext bit
+            messageBit = cipherBit ^ keyBit
+            decryptedChar |= (messageBit << bitPosition)
+
+            # Update shift register : Shift left and add the ciphertext bit
+            shiftRegister = ((shiftRegister << 1) | cipherBit) & 0x3FF
+
+        result.append(chr(decryptedChar))
+
     return ''.join(result)
 
 def generateKeyStream(k0, k1, length):
@@ -111,7 +141,7 @@ def combinedEncryption(message, cfbKey, syncKey, iv):
             positions[len(evenChars) - 1 + len(message)//2] = i
     
     # Encrypt odd chars with CFB
-    oddEncryption = CFB1BitEncryptionAndDecryption(oddChars, cfbKey, iv) if oddChars else ""
+    oddEncryption = CFB1BitEncryption(oddChars, cfbKey, iv) if oddChars else ""
 
     # Encrypt even chars with synchronous cipher
     evenEncryption = syncCipherEncrypt(evenChars, syncKey) if evenChars else ""
@@ -143,10 +173,10 @@ def combinedDecryption(cipherText, cfbKey, syncKey, iv):
             evenChars += char
 
     # Decrypt odd chars with CFB
-    oddDecryption = CFB1BitEncryptionAndDecryption(oddChars, cfbKey, iv) if oddChars else ""
+    oddDecryption = CFB1BitDecryption(oddChars, cfbKey, iv) if oddChars else ""
 
     # Decrypt even chars with synchronous cipher
-    evenDecryption = syncCipherDecrypt(cipherText, syncKey) if evenChars else ""
+    evenDecryption = syncCipherDecrypt(evenChars, syncKey) if evenChars else ""
 
     # Message reconstruction
     result = [''] * len(cipherText)
@@ -224,8 +254,8 @@ def testing():
     print(f"Key: {[hex(k) for k in cfb_test_key]}")
     print(f"IV: {hex(cfb_test_iv)}")
     
-    encrypted_cfb = CFB1BitEncryptionAndDecryption(cfb_test_msg, cfb_test_key, cfb_test_iv)
-    decrypted_cfb = CFB1BitEncryptionAndDecryption(encrypted_cfb, cfb_test_key, cfb_test_iv)
+    encrypted_cfb = CFB1BitEncryption(cfb_test_msg, cfb_test_key, cfb_test_iv)
+    decrypted_cfb = CFB1BitDecryption(encrypted_cfb, cfb_test_key, cfb_test_iv)
     
     print(f"Encrypted: {[hex(ord(c)) for c in encrypted_cfb]}")
     print(f"Decrypted: {decrypted_cfb}")
@@ -291,8 +321,8 @@ def testing():
         print(f"Decrypted: {[ord(c) for c in decrypted]}")
         
         # Check individual components
-        odd_encrypted = CFB1BitEncryptionAndDecryption(odd_chars, cfb_key, iv)
-        odd_decrypted = CFB1BitEncryptionAndDecryption(odd_encrypted, cfb_key, iv)
+        odd_encrypted = CFB1BitEncryption(odd_chars, cfb_key, iv)
+        odd_decrypted = CFB1BitDecryption(odd_encrypted, cfb_key, iv)
         print(f"CFB test: '{odd_chars}' -> '{odd_decrypted}' (Success: {odd_chars == odd_decrypted})")
         
         even_encrypted = syncCipherEncrypt(even_chars, sync_key)

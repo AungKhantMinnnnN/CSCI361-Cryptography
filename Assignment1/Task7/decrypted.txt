@@ -1,1 +1,0 @@
-This is a test file for the 1-bit CFB TEA file encryption and decryption process.

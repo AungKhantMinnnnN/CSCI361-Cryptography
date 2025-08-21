@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <numeric>
 
+using namespace std;
+
 class knapsackCrypto {
     private:
-        std::vector<int> privateKey; // super-increasing sequence
-        std::vector<int> publicKey; // transformed sequence
+        vector<int> privateKey; // super-increasing sequence
+        vector<int> publicKey; // transformed sequence
         int modulus;
         int multiplier;
         int multiplicativeInverse;
@@ -32,7 +34,7 @@ class knapsackCrypto {
             return (x % m + m) % m;
         }
 
-        bool isSuperIncreasing(const std::vector<int>& sequence){
+        bool isSuperIncreasing(const vector<int>& sequence){
             int sum = 0;
             for (int value : sequence){
                 if (value <= sum) return false;
@@ -55,47 +57,47 @@ class knapsackCrypto {
     public:
         void setup(){
             int n;
-            std::cout << "Enter the size of the super-increasing knapsack: ";
-            std::cin >> n;
+            cout << "Enter the size of the super-increasing knapsack: ";
+            cin >> n;
 
             privateKey.resize(n);
-            std::cout << "Enter the values of the private key (super-increasing sequence):\n";
+            cout << "Enter the values of the private key (super-increasing sequence):\n";
             for (int i = 0; i < n; i++){
-                std::cout << "a[" << i << "]: ";
-                std::cin >> privateKey[i];
+                cout << "a[" << i << "]: ";
+                cin >> privateKey[i];
             }
 
             //valid super-increasing property
             if(!isSuperIncreasing(privateKey)){
-                std::cout << "Error: The sequence is not super-increasing.\n";
+                cout << "Error: The sequence is not super-increasing.\n";
                 return;
             }
 
             //get modulus
-            int sum = std::accumulate(privateKey.begin(), privateKey.end(), 0);
-            std::cout << "Enter modulus: (must be > " << sum << "): ";
-            std::cin >> modulus;
+            int sum = accumulate(privateKey.begin(), privateKey.end(), 0);
+            cout << "Enter modulus: (must be > " << sum << "): ";
+            cin >> modulus;
 
             if (modulus <= sum){
-                std::cout << "Error: Modulus must be greater than " << sum << ".";
+                cout << "Error: Modulus must be greater than " << sum << ".";
                 return;
             }
 
             //get multiplier
-            std::cout << "Enter multiplier: ";
-            std::cin >> multiplier;
+            cout << "Enter multiplier: ";
+            cin >> multiplier;
 
             if(!isValidMultiplier(multiplier, modulus)){
-                std::cout << "Error: Multiplier and modulus are not coprime.\n";
+                cout << "Error: Multiplier and modulus are not coprime.\n";
                 return;
             }
 
-            std::cout << "Conditions satisfied: GCD(" << multiplier << ", " << modulus << ") = 1/n";
+            cout << "Conditions satisfied: GCD(" << multiplier << ", " << modulus << ") = 1/n";
 
             //calculate multiplicative inverse
             multiplicativeInverse = modInverse(multiplier, modulus);
             if (multiplicativeInverse == -1){
-                std::cout << "Error: Cannot find multiplicative inverse.\n";
+                cout << "Error: Cannot find multiplicative inverse.\n";
                 return;
             }
 
@@ -106,17 +108,17 @@ class knapsackCrypto {
 
             //print public key
             for (int i = 0; i < publicKey.size(); i++){
-                std::cout << publicKey[i];
-                if (i < publicKey.size() - 1) std::cout << ", ";
+                cout << publicKey[i];
+                if (i < publicKey.size() - 1) cout << ", ";
             }
-            std::cout << std::endl;
+            cout << endl;
         }
         
-        std::vector<int> encryption(const std::string& plaintext){
-            std::vector<int> ciphertext;
+        vector<int> encryption(const string& plaintext){
+            vector<int> ciphertext;
             for (char c : plaintext){
                 //convert character to binary
-                std::vector<int> binary(8);
+                vector<int> binary(8);
                 for (int i = 7; i >= 0; i--){
                     binary[7-i] = (c >> i) & 1;
                 }
@@ -128,16 +130,17 @@ class knapsackCrypto {
                 }
                 ciphertext.push_back(sum);
             }
+            return ciphertext;
         }
 
-        std::string decryption(const std::vector<int>& ciphertext){
-            std::string plaintext;
+        string decryption(const vector<int>& ciphertext){
+            string plaintext;
             for (int cipher : ciphertext){
                 // transform cipher using multiplicative inverse
                 int transformedCipher = (cipher * multiplicativeInverse) % modulus;
 
                 // solve knapsack
-                std::vector<int> binary(8,0);
+                vector<int> binary(8,0);
                 for (int i = privateKey.size() - 1; i >= 0 && i >= privateKey.size() - 8; i--){
                     int idx = 7 - (privateKey.size() - 1 - i);
                     if (idx >= 0 && transformedCipher >= privateKey[i]){
@@ -160,45 +163,45 @@ class knapsackCrypto {
             setup();
 
             if(publicKey.empty()){
-                std::cout << "Setup failed. Exiting program.\n";
+                cout << "Setup failed. Exiting program.\n";
                 return;
             }
 
             //encryption
-            std::string message;
-            std::cout << "\nEnter message for encryption: ";
-            std::cin.ignore(); // clear input buffer
-            std::getline(std::cin, message);
+            string message;
+            cout << "\nEnter message for encryption: ";
+            cin.ignore(); // clear input buffer
+            getline(cin, message);
 
-            std::vector<int> ciphertext = encryption(message);
+            vector<int> ciphertext = encryption(message);
 
-            std::cout << "\nEncrypted ciphertext: ";
+            cout << "\nEncrypted ciphertext: ";
             for (int i = 0; i < ciphertext.size(); i++){
-                std::cout << ciphertext[i];
-                if (i < ciphertext.size() - 1) std::cout << ", ";
+                cout << ciphertext[i];
+                if (i < ciphertext.size() - 1) cout << ", ";
             }
-            std::cout << std::endl;
+            cout << endl;
 
             //decryption
-            std::cout << "\nEnter ciphertext to decrypt (space-separated): ";
-            std::string input;
-            std::getline(std::cin, input);
+            cout << "\nEnter ciphertext to decrypt (space-separated): ";
+            string input;
+            getline(cin, input);
 
-            std::vector<int> inputCiphertext;
+            vector<int> inputCiphertext;
             size_t position = 0;
             while (position < input.length()){
                 size_t nextPosition = input.find(' ', position);
-                if (nextPosition == std::string::npos) nextPosition = input.length();
+                if (nextPosition == string::npos) nextPosition = input.length();
 
-                std::string numberString = input.substr(position, nextPosition - position);
+                string numberString = input.substr(position, nextPosition - position);
                 if(!numberString.empty()){
-                    inputCiphertext.push_back(std::stoi(numberString));
+                    inputCiphertext.push_back(stoi(numberString));
                 }
                 position = nextPosition + 1;
             }
 
-            std::string decryptedPlaintext = decryption(inputCiphertext);
-            std::cout << "\nDecrypted message: " << decryption << std::endl;
+            string decryptedPlaintext = decryption(inputCiphertext);
+            cout << "\nDecrypted message: " << decryptedPlaintext << endl;
         }
 };
 
